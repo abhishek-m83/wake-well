@@ -2,11 +2,14 @@
 // WakeWell — Custom React Hooks
 // ============================================================
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { AppState } from 'react-native';
+import {useState, useEffect, useRef, useCallback} from 'react';
+import {AppState} from 'react-native';
 import SensorService from '../services/SensorService';
-import { modelSleepCycles, determineOptimalAlarmTime } from '../services/SleepCycleEngine';
-import { getCurrentWakeStage, getActiveSounds } from '../services/ProgressiveWakeManager';
+import {modelSleepCycles} from '../services/SleepCycleEngine';
+import {
+  getCurrentWakeStage,
+  getActiveSounds,
+} from '../services/ProgressiveWakeManager';
 import useAppStore from '../store';
 
 /**
@@ -32,14 +35,14 @@ export function useCountdown(targetDate) {
   const now = useClock();
 
   if (!targetDate) {
-    return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isReached: true };
+    return {hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isReached: true};
   }
 
   const target = targetDate instanceof Date ? targetDate : new Date(targetDate);
   const diffMs = target - now;
 
   if (diffMs <= 0) {
-    return { hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isReached: true };
+    return {hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isReached: true};
   }
 
   const totalSeconds = Math.floor(diffMs / 1000);
@@ -47,7 +50,7 @@ export function useCountdown(targetDate) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  return { hours, minutes, seconds, totalSeconds, isReached: false };
+  return {hours, minutes, seconds, totalSeconds, isReached: false};
 }
 
 /**
@@ -86,11 +89,11 @@ export function useSensorTracking() {
 
   const start = useCallback(() => {
     SensorService.startTracking({
-      onMovement: (data) => {
-        setMovementData((prev) => [...prev, data]);
+      onMovement: data => {
+        setMovementData(prev => [...prev, data]);
         setLastReading(data);
       },
-      onError: (err) => {
+      onError: err => {
         setError(err);
         setIsActive(false);
       },
@@ -164,8 +167,11 @@ export function useAppStateListener(onForeground, onBackground) {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextState === 'active'
+      ) {
         if (onForeground) onForeground();
       } else if (nextState.match(/inactive|background/)) {
         if (onBackground) onBackground();
@@ -181,8 +187,8 @@ export function useAppStateListener(onForeground, onBackground) {
  * Hook: Sleep analytics computed from store.
  */
 export function useSleepAnalytics() {
-  const getSleepStats = useAppStore((state) => state.getSleepStats);
-  const sleepHistory = useAppStore((state) => state.sleepHistory);
+  const getSleepStats = useAppStore(state => state.getSleepStats);
+  const sleepHistory = useAppStore(state => state.sleepHistory);
 
   const [stats, setStats] = useState(getSleepStats());
 

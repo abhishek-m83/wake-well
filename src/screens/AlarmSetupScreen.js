@@ -5,7 +5,7 @@
 // sound preferences, and smart alarm settings.
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -17,48 +17,51 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
-import { COLORS, SPACING, BORDER_RADIUS, SOUND_LIBRARY, WAKE_CONFIG } from '../constants';
+import {
+  COLORS,
+  SPACING,
+  BORDER_RADIUS,
+  SOUND_LIBRARY,
+  WAKE_CONFIG,
+} from '../constants';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function AlarmSetupScreen({ navigation, route }) {
-  const { alarmId } = route.params || {};
-  const existingAlarm = useAppStore((s) =>
-    s.alarms.find((a) => a.id === alarmId)
-  );
-  const addAlarm = useAppStore((s) => s.addAlarm);
-  const updateAlarm = useAppStore((s) => s.updateAlarm);
-  const removeAlarm = useAppStore((s) => s.removeAlarm);
+export default function AlarmSetupScreen({navigation, route}) {
+  const {alarmId} = route.params || {};
+  const existingAlarm = useAppStore(s => s.alarms.find(a => a.id === alarmId));
+  const addAlarm = useAppStore(s => s.addAlarm);
+  const updateAlarm = useAppStore(s => s.updateAlarm);
+  const removeAlarm = useAppStore(s => s.removeAlarm);
 
   const [hour, setHour] = useState(existingAlarm?.time?.hour ?? 7);
   const [minute, setMinute] = useState(existingAlarm?.time?.minute ?? 0);
   const [label, setLabel] = useState(existingAlarm?.label || 'Wake Up');
   const [repeatDays, setRepeatDays] = useState(existingAlarm?.repeatDays || []);
   const [smartEnabled, setSmartEnabled] = useState(
-    existingAlarm?.smartAlarmEnabled ?? true
+    existingAlarm?.smartAlarmEnabled ?? true,
   );
   const [dismissType, setDismissType] = useState(
-    existingAlarm?.dismissChallenge || 'math'
+    existingAlarm?.dismissChallenge || 'math',
   );
   const [selectedNature, setSelectedNature] = useState(
-    existingAlarm?.soundPreferences?.nature || 'birds_morning'
+    existingAlarm?.soundPreferences?.nature || 'birds_morning',
   );
   const [selectedAmbient, setSelectedAmbient] = useState(
-    existingAlarm?.soundPreferences?.ambient || 'piano_soft'
+    existingAlarm?.soundPreferences?.ambient || 'piano_soft',
   );
 
-  const toggleDay = (dayIndex) => {
-    setRepeatDays((prev) =>
+  const toggleDay = dayIndex => {
+    setRepeatDays(prev =>
       prev.includes(dayIndex)
-        ? prev.filter((d) => d !== dayIndex)
-        : [...prev, dayIndex].sort()
+        ? prev.filter(d => d !== dayIndex)
+        : [...prev, dayIndex].sort(),
     );
   };
 
   const handleSave = () => {
     const alarmData = {
-      time: { hour, minute },
+      time: {hour, minute},
       label,
       repeatDays,
       smartAlarmEnabled: smartEnabled,
@@ -87,8 +90,8 @@ export default function AlarmSetupScreen({ navigation, route }) {
   };
 
   // Simple scroll-based time picker
-  const adjustHour = (delta) => setHour((h) => ((h + delta + 24) % 24));
-  const adjustMinute = (delta) => setMinute((m) => ((m + delta + 60) % 60));
+  const adjustHour = delta => setHour(h => (h + delta + 24) % 24);
+  const adjustMinute = delta => setMinute(m => (m + delta + 60) % 60);
 
   const displayHour = hour % 12 || 12;
   const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -112,13 +115,17 @@ export default function AlarmSetupScreen({ navigation, route }) {
         {/* Time Picker */}
         <View style={styles.timePicker}>
           <View style={styles.timeColumn}>
-            <TouchableOpacity onPress={() => adjustHour(1)} style={styles.timeArrow}>
+            <TouchableOpacity
+              onPress={() => adjustHour(1)}
+              style={styles.timeArrow}>
               <Icon name="chevron-up" size={28} color={COLORS.textMuted} />
             </TouchableOpacity>
             <Text style={styles.timeDigit}>
               {displayHour.toString().padStart(2, '0')}
             </Text>
-            <TouchableOpacity onPress={() => adjustHour(-1)} style={styles.timeArrow}>
+            <TouchableOpacity
+              onPress={() => adjustHour(-1)}
+              style={styles.timeArrow}>
               <Icon name="chevron-down" size={28} color={COLORS.textMuted} />
             </TouchableOpacity>
           </View>
@@ -126,21 +133,24 @@ export default function AlarmSetupScreen({ navigation, route }) {
           <Text style={styles.timeColon}>:</Text>
 
           <View style={styles.timeColumn}>
-            <TouchableOpacity onPress={() => adjustMinute(5)} style={styles.timeArrow}>
+            <TouchableOpacity
+              onPress={() => adjustMinute(5)}
+              style={styles.timeArrow}>
               <Icon name="chevron-up" size={28} color={COLORS.textMuted} />
             </TouchableOpacity>
             <Text style={styles.timeDigit}>
               {minute.toString().padStart(2, '0')}
             </Text>
-            <TouchableOpacity onPress={() => adjustMinute(-5)} style={styles.timeArrow}>
+            <TouchableOpacity
+              onPress={() => adjustMinute(-5)}
+              style={styles.timeArrow}>
               <Icon name="chevron-down" size={28} color={COLORS.textMuted} />
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
             style={styles.ampmToggle}
-            onPress={() => setHour((h) => (h + 12) % 24)}
-          >
+            onPress={() => setHour(h => (h + 12) % 24)}>
             <Text style={styles.ampmText}>{ampm}</Text>
           </TouchableOpacity>
         </View>
@@ -168,14 +178,12 @@ export default function AlarmSetupScreen({ navigation, route }) {
                   styles.dayButton,
                   repeatDays.includes(idx) && styles.dayButtonActive,
                 ]}
-                onPress={() => toggleDay(idx)}
-              >
+                onPress={() => toggleDay(idx)}>
                 <Text
                   style={[
                     styles.dayButtonText,
                     repeatDays.includes(idx) && styles.dayButtonTextActive,
-                  ]}
-                >
+                  ]}>
                   {dayLabel}
                 </Text>
               </TouchableOpacity>
@@ -185,20 +193,17 @@ export default function AlarmSetupScreen({ navigation, route }) {
           <View style={styles.presetsRow}>
             <TouchableOpacity
               style={styles.presetChip}
-              onPress={() => setRepeatDays([1, 2, 3, 4, 5])}
-            >
+              onPress={() => setRepeatDays([1, 2, 3, 4, 5])}>
               <Text style={styles.presetText}>Weekdays</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.presetChip}
-              onPress={() => setRepeatDays([0, 6])}
-            >
+              onPress={() => setRepeatDays([0, 6])}>
               <Text style={styles.presetText}>Weekends</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.presetChip}
-              onPress={() => setRepeatDays([0, 1, 2, 3, 4, 5, 6])}
-            >
+              onPress={() => setRepeatDays([0, 1, 2, 3, 4, 5, 6])}>
               <Text style={styles.presetText}>Every day</Text>
             </TouchableOpacity>
           </View>
@@ -215,7 +220,7 @@ export default function AlarmSetupScreen({ navigation, route }) {
           <Switch
             value={smartEnabled}
             onValueChange={setSmartEnabled}
-            trackColor={{ false: COLORS.nightLight, true: COLORS.primaryDark }}
+            trackColor={{false: COLORS.nightLight, true: COLORS.primaryDark}}
             thumbColor={smartEnabled ? COLORS.primary : COLORS.textMuted}
           />
         </View>
@@ -225,46 +230,42 @@ export default function AlarmSetupScreen({ navigation, route }) {
           <Text style={styles.fieldLabel}>Wake-up Sounds</Text>
           <Text style={styles.fieldHint}>Nature (starts first, softest)</Text>
           <View style={styles.soundGrid}>
-            {SOUND_LIBRARY.nature.map((sound) => (
+            {SOUND_LIBRARY.nature.map(sound => (
               <TouchableOpacity
                 key={sound.id}
                 style={[
                   styles.soundChip,
                   selectedNature === sound.id && styles.soundChipActive,
                 ]}
-                onPress={() => setSelectedNature(sound.id)}
-              >
+                onPress={() => setSelectedNature(sound.id)}>
                 <Text
                   style={[
                     styles.soundChipText,
                     selectedNature === sound.id && styles.soundChipTextActive,
-                  ]}
-                >
+                  ]}>
                   {sound.name}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={[styles.fieldHint, { marginTop: SPACING.md }]}>
+          <Text style={[styles.fieldHint, {marginTop: SPACING.md}]}>
             Ambient Music (joins next)
           </Text>
           <View style={styles.soundGrid}>
-            {SOUND_LIBRARY.ambient.map((sound) => (
+            {SOUND_LIBRARY.ambient.map(sound => (
               <TouchableOpacity
                 key={sound.id}
                 style={[
                   styles.soundChip,
                   selectedAmbient === sound.id && styles.soundChipActive,
                 ]}
-                onPress={() => setSelectedAmbient(sound.id)}
-              >
+                onPress={() => setSelectedAmbient(sound.id)}>
                 <Text
                   style={[
                     styles.soundChipText,
                     selectedAmbient === sound.id && styles.soundChipTextActive,
-                  ]}
-                >
+                  ]}>
                   {sound.name}
                 </Text>
               </TouchableOpacity>
@@ -279,21 +280,19 @@ export default function AlarmSetupScreen({ navigation, route }) {
             How do you prove you&apos;re awake?
           </Text>
           <View style={styles.soundGrid}>
-            {WAKE_CONFIG.DISMISS_CHALLENGES.map((challenge) => (
+            {WAKE_CONFIG.DISMISS_CHALLENGES.map(challenge => (
               <TouchableOpacity
                 key={challenge.id}
                 style={[
                   styles.soundChip,
                   dismissType === challenge.id && styles.soundChipActive,
                 ]}
-                onPress={() => setDismissType(challenge.id)}
-              >
+                onPress={() => setDismissType(challenge.id)}>
                 <Text
                   style={[
                     styles.soundChipText,
                     dismissType === challenge.id && styles.soundChipTextActive,
-                  ]}
-                >
+                  ]}>
                   {challenge.name}
                 </Text>
               </TouchableOpacity>

@@ -2,20 +2,41 @@
 // WakeWell — App Entry Point
 // ============================================================
 
-import React, { useEffect, Component } from 'react';
-import { StatusBar, LogBox, View, Text } from 'react-native';
+import React, {useEffect, Component} from 'react';
+import {StatusBar, LogBox, View, Text} from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 
 class ErrorBoundary extends Component {
-  state = { error: null };
-  static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error('RENDER ERROR:', error, info.componentStack); }
+  state = {error: null};
+  static getDerivedStateFromError(error) {
+    return {error};
+  }
+  componentDidCatch(error, info) {
+    console.error('RENDER ERROR:', error, info.componentStack);
+  }
   render() {
     if (this.state.error) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#0B0E1A', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <Text style={{ color: '#E85D75', fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>Render Error</Text>
-          <Text style={{ color: '#EEEDF5', fontSize: 12 }}>{String(this.state.error)}</Text>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: '#0B0E1A',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}>
+          <Text
+            style={{
+              color: '#E85D75',
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 12,
+            }}>
+            Render Error
+          </Text>
+          <Text style={{color: '#EEEDF5', fontSize: 12}}>
+            {String(this.state.error)}
+          </Text>
         </View>
       );
     }
@@ -23,7 +44,7 @@ class ErrorBoundary extends Component {
   }
 }
 import AlarmScheduler from './src/services/AlarmScheduler';
-import { hydrateStore, enablePersistence } from './src/store';
+import {hydrateStore, enablePersistence} from './src/store';
 
 // Suppress non-critical warnings in development
 LogBox.ignoreLogs([
@@ -45,11 +66,11 @@ export default function App() {
 
       // 4. Set alarm callbacks
       AlarmScheduler.setCallbacks({
-        onPreWakeTrigger: (alarmId) => {
+        onPreWakeTrigger: alarmId => {
           console.log('Pre-wake triggered for alarm:', alarmId);
           // The SleepTrackingScreen handles the progressive wake start
         },
-        onAlarmTrigger: (alarmId) => {
+        onAlarmTrigger: alarmId => {
           console.log('Alarm triggered:', alarmId);
           // Navigate to WakeScreen — handled by notification deep link
         },

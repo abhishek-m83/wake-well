@@ -3,9 +3,9 @@
 // ============================================================
 
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {createStackNavigator} from '@react-navigation/stack';
+import {NavigationContainer, DarkTheme} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -14,7 +14,7 @@ import SleepTrackingScreen from '../screens/SleepTrackingScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import WakeScreen from '../screens/WakeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { COLORS } from '../constants';
+import {COLORS} from '../constants';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -25,7 +25,7 @@ const Stack = createStackNavigator();
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({route}) => ({
         headerShown: false,
         tabBarStyle: {
           backgroundColor: COLORS.nightDeep,
@@ -41,18 +41,24 @@ function MainTabs() {
           fontSize: 11,
           fontWeight: '600',
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({color, size}) => {
           let iconName;
           switch (route.name) {
-            case 'Home': iconName = 'moon'; break;
-            case 'Analytics': iconName = 'bar-chart-2'; break;
-            case 'Settings': iconName = 'settings'; break;
-            default: iconName = 'circle';
+            case 'Home':
+              iconName = 'moon';
+              break;
+            case 'Analytics':
+              iconName = 'bar-chart-2';
+              break;
+            case 'Settings':
+              iconName = 'settings';
+              break;
+            default:
+              iconName = 'circle';
           }
           return <Icon name={iconName} size={size} color={color} />;
         },
-      })}
-    >
+      })}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
@@ -77,24 +83,23 @@ export default function AppNavigator() {
           border: COLORS.cardBorder,
           notification: COLORS.accent,
         },
-      }}
-    >
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      }}>
+      <Stack.Navigator screenOptions={{headerShown: false}}>
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen
           name="AlarmSetup"
           component={AlarmSetupScreen}
-          options={{ presentation: 'modal' }}
+          options={{presentation: 'modal'}}
         />
         <Stack.Screen
           name="SleepTracking"
           component={SleepTrackingScreen}
-          options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+          options={{presentation: 'fullScreenModal', gestureEnabled: false}}
         />
         <Stack.Screen
           name="Wake"
           component={WakeScreen}
-          options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+          options={{presentation: 'fullScreenModal', gestureEnabled: false}}
         />
       </Stack.Navigator>
     </NavigationContainer>

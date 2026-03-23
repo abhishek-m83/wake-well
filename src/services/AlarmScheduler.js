@@ -6,8 +6,8 @@
 // even in Doze mode via foreground service notifications.
 // ============================================================
 
-import { Platform } from 'react-native';
-import { WAKE_CONFIG } from '../constants';
+import {Platform} from 'react-native';
+import {WAKE_CONFIG} from '../constants';
 
 /**
  * AlarmScheduler
@@ -46,7 +46,7 @@ class AlarmScheduler {
           importance: 4, // IMPORTANCE_HIGH
           vibrate: true,
         },
-        (created) => console.log(`Alarm channel created: ${created}`)
+        created => console.log(`Alarm channel created: ${created}`),
       );
 
       // Create lower-priority channel for sleep tracking
@@ -59,12 +59,12 @@ class AlarmScheduler {
           importance: 2, // IMPORTANCE_LOW
           vibrate: false,
         },
-        (created) => console.log(`Tracking channel created: ${created}`)
+        created => console.log(`Tracking channel created: ${created}`),
       );
 
       // Configure notification handler
       PushNotification.configure({
-        onNotification: (notification) => {
+        onNotification: notification => {
           this._handleNotification(notification);
         },
         permissions: {
@@ -109,9 +109,9 @@ class AlarmScheduler {
     }
 
     // Calculate pre-wake time if not provided
-    const actualPreWakeTime = preWakeTime || new Date(
-      alarmTime.getTime() - WAKE_CONFIG.TOTAL_DURATION_MIN * 60000
-    );
+    const actualPreWakeTime =
+      preWakeTime ||
+      new Date(alarmTime.getTime() - WAKE_CONFIG.TOTAL_DURATION_MIN * 60000);
 
     const alarmConfig = {
       id,
@@ -135,7 +135,7 @@ class AlarmScheduler {
       date: actualPreWakeTime,
       channelId: 'wakewell-tracking',
       ongoing: true,
-      data: { type: 'prewake', alarmId: id },
+      data: {type: 'prewake', alarmId: id},
     });
 
     // Schedule the main alarm notification (hard deadline)
@@ -147,7 +147,7 @@ class AlarmScheduler {
       channelId: 'wakewell-alarm',
       ongoing: true,
       fullScreen: true, // Shows full-screen intent on locked phone
-      data: { type: 'alarm', alarmId: id },
+      data: {type: 'alarm', alarmId: id},
     });
 
     console.log(`Alarm scheduled: ${id} at ${alarmTime.toISOString()}`);
@@ -231,7 +231,7 @@ class AlarmScheduler {
   /**
    * Register callbacks for alarm events.
    */
-  setCallbacks({ onAlarmTrigger, onPreWakeTrigger }) {
+  setCallbacks({onAlarmTrigger, onPreWakeTrigger}) {
     this.onAlarmTrigger = onAlarmTrigger;
     this.onPreWakeTrigger = onPreWakeTrigger;
   }
@@ -273,7 +273,16 @@ class AlarmScheduler {
 
   // ---- Private Methods ----
 
-  _scheduleNotification({ id, title, message, date, channelId, ongoing, fullScreen, data }) {
+  _scheduleNotification({
+    id,
+    title,
+    message,
+    date,
+    channelId,
+    ongoing,
+    fullScreen,
+    data,
+  }) {
     try {
       const PushNotification = require('react-native-push-notification');
 

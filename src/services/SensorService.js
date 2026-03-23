@@ -5,9 +5,9 @@
 // Falls back gracefully to manual mode when sensors unavailable.
 // ============================================================
 
-import { SLEEP_CONFIG } from '../constants';
+import {SLEEP_CONFIG} from '../constants';
 
-const { SENSOR } = SLEEP_CONFIG;
+const {SENSOR} = SLEEP_CONFIG;
 
 /**
  * SensorService — manages accelerometer data collection
@@ -51,9 +51,9 @@ class SensorService {
   async checkAvailability() {
     try {
       // react-native-sensors provides an availability check
-      const { accelerometer } = require('react-native-sensors');
+      const {accelerometer} = require('react-native-sensors');
       // Try to get a single reading
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const sub = accelerometer.subscribe(
           () => {
             sub.unsubscribe();
@@ -63,7 +63,7 @@ class SensorService {
           () => {
             this.sensorAvailable = false;
             resolve(false);
-          }
+          },
         );
         // Timeout after 2 seconds
         setTimeout(() => {
@@ -97,25 +97,34 @@ class SensorService {
     this.isTracking = true;
 
     try {
-      const { accelerometer, setUpdateIntervalForType, SensorTypes } = require('react-native-sensors');
+      const {
+        accelerometer,
+        setUpdateIntervalForType,
+        SensorTypes,
+      } = require('react-native-sensors');
 
       // Set sampling rate
-      setUpdateIntervalForType(SensorTypes.accelerometer, SENSOR.SAMPLING_RATE_MS);
+      setUpdateIntervalForType(
+        SensorTypes.accelerometer,
+        SENSOR.SAMPLING_RATE_MS,
+      );
 
       this.subscription = accelerometer.subscribe(
-        ({ x, y, z, timestamp }) => {
+        ({x, y, z, timestamp}) => {
           this._processReading(x, y, z, timestamp || Date.now());
         },
-        (error) => {
+        error => {
           console.error('Accelerometer error:', error);
           if (this.callbacks.onError) {
             this.callbacks.onError(error);
           }
           this._fallbackToManual();
-        }
+        },
       );
     } catch (error) {
-      console.warn('SensorService: Accelerometer unavailable, using manual mode');
+      console.warn(
+        'SensorService: Accelerometer unavailable, using manual mode',
+      );
       if (this.callbacks.onError) {
         this.callbacks.onError(error);
       }
@@ -156,7 +165,7 @@ class SensorService {
    */
   getMovementSummary() {
     if (this.movementHistory.length === 0) {
-      return { available: false, method: 'none' };
+      return {available: false, method: 'none'};
     }
 
     const magnitudes = this.movementHistory.map(r => r.magnitude);
@@ -165,11 +174,15 @@ class SensorService {
     const min = Math.min(...magnitudes);
 
     // Count restless periods (above threshold)
-    const restlessReadings = magnitudes.filter(m => m > SENSOR.LIGHT_SLEEP_MOVEMENT_MIN);
+    const restlessReadings = magnitudes.filter(
+      m => m > SENSOR.LIGHT_SLEEP_MOVEMENT_MIN,
+    );
     const restlessPercent = (restlessReadings.length / magnitudes.length) * 100;
 
     // Count stillness periods (deep sleep indicators)
-    const stillReadings = magnitudes.filter(m => m <= SENSOR.DEEP_SLEEP_MOVEMENT_MAX);
+    const stillReadings = magnitudes.filter(
+      m => m <= SENSOR.DEEP_SLEEP_MOVEMENT_MAX,
+    );
     const deepSleepPercent = (stillReadings.length / magnitudes.length) * 100;
 
     return {
@@ -181,7 +194,10 @@ class SensorService {
       minMovement: min,
       restlessPercent: Math.round(restlessPercent),
       deepSleepPercent: Math.round(deepSleepPercent),
-      estimatedSleepQuality: this._estimateQualityFromMovement(avg, restlessPercent),
+      estimatedSleepQuality: this._estimateQualityFromMovement(
+        avg,
+        restlessPercent,
+      ),
     };
   }
 
@@ -200,7 +216,9 @@ class SensorService {
 
     const reading = {
       timestamp,
-      x, y, z,
+      x,
+      y,
+      z,
       magnitude: movementMagnitude,
     };
 
@@ -226,7 +244,9 @@ class SensorService {
     const magnitudes = buffer.map(r => r.magnitude);
     const avg = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
     const max = Math.max(...magnitudes);
-    const variance = magnitudes.reduce((sum, m) => sum + Math.pow(m - avg, 2), 0) / magnitudes.length;
+    const variance =
+      magnitudes.reduce((sum, m) => sum + Math.pow(m - avg, 2), 0) /
+      magnitudes.length;
 
     return {
       timestamp: buffer[buffer.length - 1].timestamp,

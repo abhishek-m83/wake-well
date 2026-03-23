@@ -5,22 +5,27 @@
 // and countdown to alarm. Minimal UI to avoid bright display.
 // ============================================================
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
-import { useClock, useCountdown, useSensorTracking, useSleepModel } from '../hooks';
-import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
-import { formatTime, timeToNextDate, formatDuration } from '../utils';
+import {
+  useClock,
+  useCountdown,
+  useSensorTracking,
+  useSleepModel,
+} from '../hooks';
+import {COLORS, SPACING, BORDER_RADIUS} from '../constants';
+import {formatTime, timeToNextDate, formatDuration} from '../utils';
 import AlarmScheduler from '../services/AlarmScheduler';
 
-export default function SleepTrackingScreen({ navigation, route }) {
-  const { alarmId } = route.params || {};
-  const alarm = useAppStore((s) => s.alarms.find((a) => a.id === alarmId));
-  const startSleepSession = useAppStore((s) => s.startSleepSession);
-  const settings = useAppStore((s) => s.settings);
+export default function SleepTrackingScreen({navigation, route}) {
+  const {alarmId} = route.params || {};
+  const alarm = useAppStore(s => s.alarms.find(a => a.id === alarmId));
+  const startSleepSession = useAppStore(s => s.startSleepSession);
+  const settings = useAppStore(s => s.settings);
 
-  const now = useClock(10000); // Update every 10 sec (battery saving)
+  useClock(10000); // Update every 10 sec (battery saving)
   const sensor = useSensorTracking();
   const [trackingStarted, setTrackingStarted] = useState(false);
 
@@ -52,7 +57,14 @@ export default function SleepTrackingScreen({ navigation, route }) {
       sensor.stop();
       AlarmScheduler.stopSleepTrackingService();
     };
-  }, [alarm]);
+  }, [
+    alarm,
+    alarmId,
+    sensor,
+    settings.useSensors,
+    startSleepSession,
+    trackingStarted,
+  ]);
 
   const handleCancel = () => {
     sensor.stop();
@@ -77,7 +89,12 @@ export default function SleepTrackingScreen({ navigation, route }) {
       {/* Ultra-dim display for nighttime */}
       <View style={styles.content}>
         {/* Moon icon */}
-        <Icon name="moon" size={48} color={COLORS.primaryDark} style={styles.moonIcon} />
+        <Icon
+          name="moon"
+          size={48}
+          color={COLORS.primaryDark}
+          style={styles.moonIcon}
+        />
 
         {/* Alarm time */}
         <Text style={styles.alarmTimeLabel}>Alarm set for</Text>
@@ -101,7 +118,11 @@ export default function SleepTrackingScreen({ navigation, route }) {
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: sensor.isActive ? COLORS.success : COLORS.accent },
+                {
+                  backgroundColor: sensor.isActive
+                    ? COLORS.success
+                    : COLORS.accent,
+                },
               ]}
             />
           </View>
@@ -143,7 +164,10 @@ export default function SleepTrackingScreen({ navigation, route }) {
                 style={[
                   styles.movementFill,
                   {
-                    width: `${Math.min(100, sensor.lastReading.magnitude * 500)}%`,
+                    width: `${Math.min(
+                      100,
+                      sensor.lastReading.magnitude * 500,
+                    )}%`,
                     backgroundColor:
                       sensor.lastReading.classification === 'still'
                         ? COLORS.success

@@ -5,7 +5,7 @@
 // wake windows, and integrates sensor data for phase detection.
 // ============================================================
 
-import { SLEEP_CONFIG } from '../constants';
+import {SLEEP_CONFIG} from '../constants';
 
 const {
   CYCLE_DURATION_MIN,
@@ -42,7 +42,11 @@ export function modelSleepCycles(bedtime, alarmTime) {
 
   // If there's a partial cycle at the end, model it
   if (remainderMin > 10) {
-    const partialCycle = buildPartialCycle(numFullCycles + 1, currentTime, remainderMin);
+    const partialCycle = buildPartialCycle(
+      numFullCycles + 1,
+      currentTime,
+      remainderMin,
+    );
     cycles.push(partialCycle);
   }
 
@@ -170,8 +174,12 @@ function calculateOptimalWakeWindows(cycles, alarmTime) {
       if (phase.endTime > windowStart && phase.startTime < alarmTime) {
         if (phase.isOptimalWake) {
           // Calculate the ideal point within this phase
-          const overlapStart = new Date(Math.max(phase.startTime.getTime(), windowStart.getTime()));
-          const overlapEnd = new Date(Math.min(phase.endTime.getTime(), alarmTime.getTime()));
+          const overlapStart = new Date(
+            Math.max(phase.startTime.getTime(), windowStart.getTime()),
+          );
+          const overlapEnd = new Date(
+            Math.min(phase.endTime.getTime(), alarmTime.getTime()),
+          );
 
           windows.push({
             time: overlapStart,
@@ -180,7 +188,9 @@ function calculateOptimalWakeWindows(cycles, alarmTime) {
             phaseName: phase.name,
             depth: phase.adjustedDepth,
             // Score: lower = better (lighter sleep, closer to alarm)
-            score: phase.adjustedDepth + (alarmTime - overlapStart) / (SMART_WINDOW_MIN * 60000),
+            score:
+              phase.adjustedDepth +
+              (alarmTime - overlapStart) / (SMART_WINDOW_MIN * 60000),
           });
         }
       }
@@ -196,8 +206,15 @@ function calculateOptimalWakeWindows(cycles, alarmTime) {
  */
 function calculatePreSleepScore(totalSleepMin) {
   const hours = totalSleepMin / 60;
-  if (hours < SLEEP_CONFIG.MIN_SLEEP_HOURS) return Math.max(20, hours / SLEEP_CONFIG.MIN_SLEEP_HOURS * 60);
-  if (hours <= SLEEP_CONFIG.RECOMMENDED_SLEEP_HOURS) return 60 + (hours - SLEEP_CONFIG.MIN_SLEEP_HOURS) / (SLEEP_CONFIG.RECOMMENDED_SLEEP_HOURS - SLEEP_CONFIG.MIN_SLEEP_HOURS) * 40;
+  if (hours < SLEEP_CONFIG.MIN_SLEEP_HOURS)
+    return Math.max(20, (hours / SLEEP_CONFIG.MIN_SLEEP_HOURS) * 60);
+  if (hours <= SLEEP_CONFIG.RECOMMENDED_SLEEP_HOURS)
+    return (
+      60 +
+      ((hours - SLEEP_CONFIG.MIN_SLEEP_HOURS) /
+        (SLEEP_CONFIG.RECOMMENDED_SLEEP_HOURS - SLEEP_CONFIG.MIN_SLEEP_HOURS)) *
+        40
+    );
   if (hours <= SLEEP_CONFIG.MAX_SLEEP_HOURS) return 100;
   return Math.max(70, 100 - (hours - SLEEP_CONFIG.MAX_SLEEP_HOURS) * 10); // Oversleep penalty
 }
@@ -248,7 +265,7 @@ export function suggestBedtimes(wakeTime, numSuggestions = 4) {
  * @returns {Object} Estimated current phase
  */
 export function estimateCurrentPhase(movementHistory, sleepOnset, currentTime) {
-  const { SENSOR } = SLEEP_CONFIG;
+  const {SENSOR} = SLEEP_CONFIG;
 
   if (!movementHistory || movementHistory.length < 5) {
     // Not enough data — fall back to algorithmic model
@@ -257,8 +274,13 @@ export function estimateCurrentPhase(movementHistory, sleepOnset, currentTime) {
 
   // Calculate recent movement statistics
   const recentWindow = movementHistory.slice(-SENSOR.WINDOW_SIZE_SEC);
-  const avgMovement = recentWindow.reduce((sum, r) => sum + r.magnitude, 0) / recentWindow.length;
-  const variance = recentWindow.reduce((sum, r) => sum + Math.pow(r.magnitude - avgMovement, 2), 0) / recentWindow.length;
+  const avgMovement =
+    recentWindow.reduce((sum, r) => sum + r.magnitude, 0) / recentWindow.length;
+  const variance =
+    recentWindow.reduce(
+      (sum, r) => sum + Math.pow(r.magnitude - avgMovement, 2),
+      0,
+    ) / recentWindow.length;
 
   // Classify based on movement patterns
   if (avgMovement <= SENSOR.DEEP_SLEEP_MOVEMENT_MAX && variance < 0.01) {
@@ -281,7 +303,10 @@ export function estimateCurrentPhase(movementHistory, sleepOnset, currentTime) {
     };
   }
 
-  if (variance >= SENSOR.REM_MOVEMENT_VARIANCE && avgMovement < SENSOR.LIGHT_SLEEP_MOVEMENT_MIN) {
+  if (
+    variance >= SENSOR.REM_MOVEMENT_VARIANCE &&
+    avgMovement < SENSOR.LIGHT_SLEEP_MOVEMENT_MIN
+  ) {
     return {
       phase: 'REM',
       confidence: 0.55,
@@ -311,13 +336,13 @@ function estimatePhaseFromTime(sleepOnset, currentTime) {
 
   // Map position within cycle to phase
   if (cyclePosition < 5) {
-    return { phase: 'LIGHT_1', confidence: 0.5, method: 'time', cycleNumber };
+    return {phase: 'LIGHT_1', confidence: 0.5, method: 'time', cycleNumber};
   } else if (cyclePosition < 30) {
-    return { phase: 'LIGHT_2', confidence: 0.5, method: 'time', cycleNumber };
+    return {phase: 'LIGHT_2', confidence: 0.5, method: 'time', cycleNumber};
   } else if (cyclePosition < 65) {
-    return { phase: 'DEEP', confidence: 0.5, method: 'time', cycleNumber };
+    return {phase: 'DEEP', confidence: 0.5, method: 'time', cycleNumber};
   } else {
-    return { phase: 'REM', confidence: 0.5, method: 'time', cycleNumber };
+    return {phase: 'REM', confidence: 0.5, method: 'time', cycleNumber};
   }
 }
 
@@ -330,18 +355,24 @@ function estimatePhaseFromTime(sleepOnset, currentTime) {
  * @returns {Date} Optimized alarm time
  */
 export function determineOptimalAlarmTime(sleepModel, movementHistory = []) {
-  const { alarmTime, optimalWakeWindows } = sleepModel;
+  const {alarmTime, optimalWakeWindows} = sleepModel;
   const now = new Date();
   const windowStart = new Date(alarmTime.getTime() - SMART_WINDOW_MIN * 60000);
 
   // If we're not yet in the smart window, return the first optimal window
   if (now < windowStart) {
-    return optimalWakeWindows.length > 0 ? optimalWakeWindows[0].time : alarmTime;
+    return optimalWakeWindows.length > 0
+      ? optimalWakeWindows[0].time
+      : alarmTime;
   }
 
   // We're inside the smart window — use sensor data if available
   if (movementHistory.length > 10) {
-    const currentPhase = estimateCurrentPhase(movementHistory, sleepModel.sleepOnset, now);
+    const currentPhase = estimateCurrentPhase(
+      movementHistory,
+      sleepModel.sleepOnset,
+      now,
+    );
 
     if (currentPhase.phase === 'LIGHT_1' || currentPhase.phase === 'LIGHT_2') {
       // User is in light sleep NOW — trigger immediately!

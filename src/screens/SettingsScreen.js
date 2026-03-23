@@ -3,15 +3,22 @@
 // ============================================================
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  TouchableOpacity,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Slider from '@react-native-community/slider';
 import useAppStore from '../store';
-import { COLORS, SPACING, BORDER_RADIUS, SLEEP_CONFIG, WAKE_CONFIG } from '../constants';
+import {COLORS, SPACING, BORDER_RADIUS, WAKE_CONFIG} from '../constants';
 
 export default function SettingsScreen() {
-  const settings = useAppStore((s) => s.settings);
-  const updateSettings = useAppStore((s) => s.updateSettings);
+  const settings = useAppStore(s => s.settings);
+  const updateSettings = useAppStore(s => s.updateSettings);
 
   const renderToggle = (icon, label, description, key) => (
     <View style={styles.settingRow}>
@@ -22,8 +29,8 @@ export default function SettingsScreen() {
       </View>
       <Switch
         value={settings[key]}
-        onValueChange={(val) => updateSettings({ [key]: val })}
-        trackColor={{ false: COLORS.nightLight, true: COLORS.primaryDark }}
+        onValueChange={val => updateSettings({[key]: val})}
+        trackColor={{false: COLORS.nightLight, true: COLORS.primaryDark}}
         thumbColor={settings[key] ? COLORS.primary : COLORS.textMuted}
       />
     </View>
@@ -40,20 +47,22 @@ export default function SettingsScreen() {
           'activity',
           'Use Motion Sensors',
           'Track movement via accelerometer for phase detection',
-          'useSensors'
+          'useSensors',
         )}
         {renderToggle(
           'zap',
           'Smart Alarm by Default',
           'New alarms use smart wake-window automatically',
-          'smartAlarmDefault'
+          'smartAlarmDefault',
         )}
 
         {/* Fall Asleep Time */}
         <View style={styles.sliderRow}>
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Time to Fall Asleep</Text>
-            <Text style={styles.sliderValue}>{settings.fallAsleepTimeMin} min</Text>
+            <Text style={styles.sliderValue}>
+              {settings.fallAsleepTimeMin} min
+            </Text>
           </View>
           <Text style={styles.settingDesc}>
             How long it typically takes you to fall asleep
@@ -64,7 +73,7 @@ export default function SettingsScreen() {
             maximumValue={45}
             step={1}
             value={settings.fallAsleepTimeMin}
-            onValueChange={(val) => updateSettings({ fallAsleepTimeMin: val })}
+            onValueChange={val => updateSettings({fallAsleepTimeMin: val})}
             minimumTrackTintColor={COLORS.primary}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.primaryLight}
@@ -75,7 +84,9 @@ export default function SettingsScreen() {
         <View style={styles.sliderRow}>
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Smart Alarm Window</Text>
-            <Text style={styles.sliderValue}>{settings.defaultSmartWindow} min</Text>
+            <Text style={styles.sliderValue}>
+              {settings.defaultSmartWindow} min
+            </Text>
           </View>
           <Text style={styles.settingDesc}>
             How early the alarm can ring to catch light sleep
@@ -86,7 +97,7 @@ export default function SettingsScreen() {
             maximumValue={45}
             step={5}
             value={settings.defaultSmartWindow}
-            onValueChange={(val) => updateSettings({ defaultSmartWindow: val })}
+            onValueChange={val => updateSettings({defaultSmartWindow: val})}
             minimumTrackTintColor={COLORS.primary}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.primaryLight}
@@ -100,7 +111,9 @@ export default function SettingsScreen() {
         <View style={styles.sliderRow}>
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Max Wake Brightness</Text>
-            <Text style={styles.sliderValue}>{Math.round(settings.maxBrightness * 100)}%</Text>
+            <Text style={styles.sliderValue}>
+              {Math.round(settings.maxBrightness * 100)}%
+            </Text>
           </View>
           <Text style={styles.settingDesc}>
             How bright the screen gets during wake-up
@@ -111,7 +124,7 @@ export default function SettingsScreen() {
             maximumValue={1.0}
             step={0.05}
             value={settings.maxBrightness}
-            onValueChange={(val) => updateSettings({ maxBrightness: val })}
+            onValueChange={val => updateSettings({maxBrightness: val})}
             minimumTrackTintColor={COLORS.accent}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.accentSoft}
@@ -122,7 +135,7 @@ export default function SettingsScreen() {
           'smartphone',
           'Vibration',
           'Vibrate during alert stage',
-          'vibrationEnabled'
+          'vibrationEnabled',
         )}
 
         {/* Dismiss Challenge */}
@@ -132,21 +145,21 @@ export default function SettingsScreen() {
             What you need to do to turn off the alarm
           </Text>
           <View style={styles.challengeOptions}>
-            {WAKE_CONFIG.DISMISS_CHALLENGES.map((ch) => (
+            {WAKE_CONFIG.DISMISS_CHALLENGES.map(ch => (
               <TouchableOpacity
                 key={ch.id}
                 style={[
                   styles.challengeChip,
-                  settings.dismissChallengeType === ch.id && styles.challengeChipActive,
+                  settings.dismissChallengeType === ch.id &&
+                    styles.challengeChipActive,
                 ]}
-                onPress={() => updateSettings({ dismissChallengeType: ch.id })}
-              >
+                onPress={() => updateSettings({dismissChallengeType: ch.id})}>
                 <Text
                   style={[
                     styles.challengeChipText,
-                    settings.dismissChallengeType === ch.id && styles.challengeChipTextActive,
-                  ]}
-                >
+                    settings.dismissChallengeType === ch.id &&
+                      styles.challengeChipTextActive,
+                  ]}>
                   {ch.name}
                 </Text>
               </TouchableOpacity>
@@ -160,7 +173,7 @@ export default function SettingsScreen() {
           'layers',
           'Show Sleep Phases',
           'Display phase breakdown during tracking',
-          'showSleepPhases'
+          'showSleepPhases',
         )}
 
         {/* About */}
@@ -176,37 +189,72 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.nightDeep },
-  scrollContent: { padding: SPACING.lg, paddingTop: SPACING.xxl + 16, paddingBottom: 100 },
-  title: { fontSize: 28, color: COLORS.textPrimary, fontWeight: '600', marginBottom: SPACING.xl },
+  container: {flex: 1, backgroundColor: COLORS.nightDeep},
+  scrollContent: {
+    padding: SPACING.lg,
+    paddingTop: SPACING.xxl + 16,
+    paddingBottom: 100,
+  },
+  title: {
+    fontSize: 28,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+    marginBottom: SPACING.xl,
+  },
   sectionTitle: {
-    fontSize: 13, color: COLORS.primaryLight, fontWeight: '700',
-    letterSpacing: 1, textTransform: 'uppercase',
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
+    fontSize: 13,
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.md,
   },
   settingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
-    paddingVertical: SPACING.md, borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
     borderBottomColor: 'rgba(123,111,191,0.1)',
   },
-  settingInfo: { flex: 1 },
-  settingLabel: { fontSize: 16, color: COLORS.textPrimary, fontWeight: '500' },
-  settingDesc: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  sliderRow: { paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(123,111,191,0.1)' },
-  sliderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sliderValue: { fontSize: 16, color: COLORS.primaryLight, fontWeight: '600' },
-  slider: { marginTop: SPACING.sm, height: 40 },
-  challengeSection: { paddingVertical: SPACING.md },
-  challengeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm },
-  challengeChip: {
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.cardBg, borderRadius: BORDER_RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
+  settingInfo: {flex: 1},
+  settingLabel: {fontSize: 16, color: COLORS.textPrimary, fontWeight: '500'},
+  settingDesc: {fontSize: 12, color: COLORS.textMuted, marginTop: 2},
+  sliderRow: {
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(123,111,191,0.1)',
   },
-  challengeChipActive: { backgroundColor: COLORS.primaryDark, borderColor: COLORS.primary },
-  challengeChipText: { fontSize: 13, color: COLORS.textSecondary },
-  challengeChipTextActive: { color: COLORS.white, fontWeight: '600' },
-  aboutSection: { alignItems: 'center', paddingTop: SPACING.xxl, opacity: 0.5 },
-  aboutTitle: { fontSize: 14, color: COLORS.textMuted, fontWeight: '600' },
-  aboutText: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
+  sliderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sliderValue: {fontSize: 16, color: COLORS.primaryLight, fontWeight: '600'},
+  slider: {marginTop: SPACING.sm, height: 40},
+  challengeSection: {paddingVertical: SPACING.md},
+  challengeOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  challengeChip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: BORDER_RADIUS.pill,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  challengeChipActive: {
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primary,
+  },
+  challengeChipText: {fontSize: 13, color: COLORS.textSecondary},
+  challengeChipTextActive: {color: COLORS.white, fontWeight: '600'},
+  aboutSection: {alignItems: 'center', paddingTop: SPACING.xxl, opacity: 0.5},
+  aboutTitle: {fontSize: 14, color: COLORS.textMuted, fontWeight: '600'},
+  aboutText: {fontSize: 12, color: COLORS.textMuted, marginTop: 4},
 });

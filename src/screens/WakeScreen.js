@@ -5,25 +5,32 @@
 // brightness control, and dismiss challenges.
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Animated, Dimensions,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
-import { useClock, useProgressiveWake } from '../hooks';
-import { generateDismissChallenge, computeScreenBrightness } from '../services/ProgressiveWakeManager';
-import { COLORS, SPACING, BORDER_RADIUS, ANALYTICS_CONFIG } from '../constants';
-import { formatTime } from '../utils';
+import {useClock, useProgressiveWake} from '../hooks';
+import {
+  generateDismissChallenge,
+  computeScreenBrightness,
+} from '../services/ProgressiveWakeManager';
+import {COLORS, SPACING, BORDER_RADIUS, ANALYTICS_CONFIG} from '../constants';
+import {formatTime} from '../utils';
 
-const { width, height } = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 
-export default function WakeScreen({ navigation, route }) {
-  const { alarmId, alarmTime: alarmTimeStr } = route.params || {};
+export default function WakeScreen({navigation, route}) {
+  const {alarmTime: alarmTimeStr} = route.params || {};
   const alarmTime = alarmTimeStr ? new Date(alarmTimeStr) : new Date();
-  const endSleepSession = useAppStore((s) => s.endSleepSession);
-  const settings = useAppStore((s) => s.settings);
+  const endSleepSession = useAppStore(s => s.endSleepSession);
+  const settings = useAppStore(s => s.settings);
 
   const now = useClock();
   const wakeInfo = useProgressiveWake(alarmTime, {
@@ -41,7 +48,10 @@ export default function WakeScreen({ navigation, route }) {
   const [breathingTimer, setBreathingTimer] = useState(0);
 
   // Background opacity based on wake brightness
-  const bgOpacity = computeScreenBrightness(wakeInfo.brightness, settings.maxBrightness);
+  const bgOpacity = computeScreenBrightness(
+    wakeInfo.brightness,
+    settings.maxBrightness,
+  );
 
   // Generate challenge when alert stage hits
   useEffect(() => {
@@ -49,7 +59,7 @@ export default function WakeScreen({ navigation, route }) {
       const dismissType = settings.dismissChallengeType || 'math';
       setChallenge(generateDismissChallenge(dismissType));
     }
-  }, [wakeInfo.stage, challenge, dismissed]);
+  }, [wakeInfo.stage, challenge, dismissed, settings.dismissChallengeType]);
 
   // Handle breathing challenge timer
   useEffect(() => {
@@ -57,7 +67,11 @@ export default function WakeScreen({ navigation, route }) {
       const timer = setTimeout(() => setBreathingTimer(t => t - 1), 1000);
       return () => clearTimeout(timer);
     }
-    if (challenge?.type === 'breathing' && breathingTimer === 0 && breathingStep > 0) {
+    if (
+      challenge?.type === 'breathing' &&
+      breathingTimer === 0 &&
+      breathingStep > 0
+    ) {
       if (breathingStep < challenge.steps.length) {
         setBreathingTimer(challenge.steps[breathingStep].duration);
         setBreathingStep(s => s + 1);
@@ -90,7 +104,7 @@ export default function WakeScreen({ navigation, route }) {
     setShowFreshnessRating(true);
   };
 
-  const handleFreshnessRating = (rating) => {
+  const handleFreshnessRating = rating => {
     endSleepSession(rating);
     navigation.navigate('Main');
   };
@@ -98,7 +112,7 @@ export default function WakeScreen({ navigation, route }) {
   // Freshness rating screen
   if (showFreshnessRating) {
     return (
-      <View style={[styles.container, { backgroundColor: COLORS.nightMid }]}>
+      <View style={[styles.container, {backgroundColor: COLORS.nightMid}]}>
         <View style={styles.freshnessContent}>
           <Icon name="sun" size={48} color={COLORS.accent} />
           <Text style={styles.freshnessTitle}>Good morning!</Text>
@@ -109,18 +123,14 @@ export default function WakeScreen({ navigation, route }) {
               ([score, config]) => (
                 <TouchableOpacity
                   key={score}
-                  style={[
-                    styles.freshnessOption,
-                    { borderColor: config.color },
-                  ]}
-                  onPress={() => handleFreshnessRating(parseInt(score, 10))}
-                >
+                  style={[styles.freshnessOption, {borderColor: config.color}]}
+                  onPress={() => handleFreshnessRating(parseInt(score, 10))}>
                   <Text style={styles.freshnessEmoji}>{config.emoji}</Text>
-                  <Text style={[styles.freshnessLabel, { color: config.color }]}>
+                  <Text style={[styles.freshnessLabel, {color: config.color}]}>
                     {config.label}
                   </Text>
                 </TouchableOpacity>
-              )
+              ),
             )}
           </View>
         </View>
@@ -160,7 +170,7 @@ export default function WakeScreen({ navigation, route }) {
             <View
               style={[
                 styles.progressFill,
-                { width: `${Math.min(100, wakeInfo.brightness * 100)}%` },
+                {width: `${Math.min(100, wakeInfo.brightness * 100)}%`},
               ]}
             />
           </View>
@@ -176,7 +186,7 @@ export default function WakeScreen({ navigation, route }) {
           <View style={styles.soundsContainer}>
             <Icon name="music" size={14} color={COLORS.textMuted} />
             <Text style={styles.soundsText}>
-              {wakeInfo.activeSounds.map((s) => s.name).join(' + ')}
+              {wakeInfo.activeSounds.map(s => s.name).join(' + ')}
             </Text>
           </View>
         )}
@@ -190,10 +200,7 @@ export default function WakeScreen({ navigation, route }) {
           />
           <View style={styles.volumeTrack}>
             <View
-              style={[
-                styles.volumeFill,
-                { width: `${wakeInfo.volume * 100}%` },
-              ]}
+              style={[styles.volumeFill, {width: `${wakeInfo.volume * 100}%`}]}
             />
           </View>
           <Text style={styles.volumeText}>
@@ -224,8 +231,7 @@ export default function WakeScreen({ navigation, route }) {
                   />
                   <TouchableOpacity
                     style={styles.challengeSubmit}
-                    onPress={handleChallengeSubmit}
-                  >
+                    onPress={handleChallengeSubmit}>
                     <Icon name="check" size={24} color={COLORS.nightDeep} />
                   </TouchableOpacity>
                 </View>
@@ -242,8 +248,7 @@ export default function WakeScreen({ navigation, route }) {
                 {breathingStep === 0 ? (
                   <TouchableOpacity
                     style={styles.breathingStart}
-                    onPress={startBreathing}
-                  >
+                    onPress={startBreathing}>
                     <Text style={styles.breathingStartText}>
                       Start Breathing Exercise
                     </Text>
@@ -251,7 +256,14 @@ export default function WakeScreen({ navigation, route }) {
                 ) : (
                   <View style={styles.breathingActive}>
                     <Text style={styles.breathingInstruction}>
-                      {challenge.steps[Math.min(breathingStep - 1, challenge.steps.length - 1)]?.instruction}
+                      {
+                        challenge.steps[
+                          Math.min(
+                            breathingStep - 1,
+                            challenge.steps.length - 1,
+                          )
+                        ]?.instruction
+                      }
                     </Text>
                     <Text style={styles.breathingCount}>{breathingTimer}</Text>
                   </View>

@@ -6,7 +6,7 @@
 // Manages volume curves, screen brightness, and sound layering.
 // ============================================================
 
-import { WAKE_CONFIG, SOUND_LIBRARY } from '../constants';
+import {WAKE_CONFIG, SOUND_LIBRARY} from '../constants';
 
 /**
  * Calculate interpolated value between start and end based on progress (0–1).
@@ -24,10 +24,10 @@ export function getCurrentWakeStage(currentTime, alarmTime) {
 
   for (const stage of stages) {
     const stageStartTime = new Date(
-      alarmTime.getTime() - stage.startMinBefore * 60000
+      alarmTime.getTime() - stage.startMinBefore * 60000,
     );
     const stageEndTime = new Date(
-      alarmTime.getTime() - stage.endMinBefore * 60000
+      alarmTime.getTime() - stage.endMinBefore * 60000,
     );
 
     if (currentTime >= stageStartTime && currentTime < stageEndTime) {
@@ -47,10 +47,16 @@ export function getCurrentWakeStage(currentTime, alarmTime) {
 
   // Not in any stage yet
   const firstStageStart = new Date(
-    alarmTime.getTime() - stages[0].startMinBefore * 60000
+    alarmTime.getTime() - stages[0].startMinBefore * 60000,
   );
   if (currentTime < firstStageStart) {
-    return { stage: null, progress: 0, volume: 0, brightness: 0, isActive: false };
+    return {
+      stage: null,
+      progress: 0,
+      volume: 0,
+      brightness: 0,
+      isActive: false,
+    };
   }
 
   // Past all stages — full alert
@@ -74,7 +80,7 @@ export function getCurrentWakeStage(currentTime, alarmTime) {
 export function getActiveSounds(stageInfo, preferences = {}) {
   if (!stageInfo.isActive || !stageInfo.stage) return [];
 
-  const { stage, volume } = stageInfo;
+  const {stage, volume} = stageInfo;
   const activeSounds = [];
 
   for (const soundType of stage.soundTypes) {
@@ -87,9 +93,10 @@ export function getActiveSounds(stageInfo, preferences = {}) {
 
     // Earlier sound types are quieter (background), latest is loudest
     const typeIndex = stage.soundTypes.indexOf(soundType);
-    const layerRatio = stage.soundTypes.length > 1
-      ? 0.4 + 0.6 * (typeIndex / (stage.soundTypes.length - 1))
-      : 1.0;
+    const layerRatio =
+      stage.soundTypes.length > 1
+        ? 0.4 + 0.6 * (typeIndex / (stage.soundTypes.length - 1))
+        : 1.0;
 
     activeSounds.push({
       ...sound,
@@ -113,7 +120,7 @@ export function generateWakeTimeline(alarmTime, preferences = {}) {
   const timeline = [];
   const totalDuration = WAKE_CONFIG.TOTAL_DURATION_MIN + 5; // +5 for alert stage
   const startTime = new Date(
-    alarmTime.getTime() - WAKE_CONFIG.TOTAL_DURATION_MIN * 60000
+    alarmTime.getTime() - WAKE_CONFIG.TOTAL_DURATION_MIN * 60000,
   );
 
   for (let min = 0; min <= totalDuration; min++) {
@@ -152,16 +159,23 @@ export function generateDismissChallenge(type = 'math') {
       const op = ops[Math.floor(Math.random() * ops.length)];
       let answer;
       switch (op) {
-        case '+': answer = a + b; break;
-        case '-': answer = a - b; break;
-        case '×': answer = a * b; break;
-        default: answer = a + b;
+        case '+':
+          answer = a + b;
+          break;
+        case '-':
+          answer = a - b;
+          break;
+        case '×':
+          answer = a * b;
+          break;
+        default:
+          answer = a + b;
       }
       return {
         type: 'math',
         prompt: `Solve: ${a} ${op} ${b} = ?`,
         answer: answer.toString(),
-        validate: (input) => parseInt(input, 10) === answer,
+        validate: input => parseInt(input, 10) === answer,
       };
     }
 
@@ -170,12 +184,12 @@ export function generateDismissChallenge(type = 'math') {
         type: 'breathing',
         prompt: 'Complete a 4-7-8 breathing cycle',
         steps: [
-          { instruction: 'Breathe IN through your nose', duration: 4 },
-          { instruction: 'HOLD your breath', duration: 7 },
-          { instruction: 'Breathe OUT through your mouth', duration: 8 },
+          {instruction: 'Breathe IN through your nose', duration: 4},
+          {instruction: 'HOLD your breath', duration: 7},
+          {instruction: 'Breathe OUT through your mouth', duration: 8},
         ],
         totalDuration: config.duration || 60,
-        validate: (completed) => completed === true,
+        validate: completed => completed === true,
       };
     }
 
@@ -185,7 +199,7 @@ export function generateDismissChallenge(type = 'math') {
         prompt: `Shake your phone ${config.count} times!`,
         targetCount: config.count || 20,
         currentCount: 0,
-        validate: (count) => count >= (config.count || 20),
+        validate: count => count >= (config.count || 20),
       };
     }
 
@@ -205,7 +219,7 @@ export function generateDismissChallenge(type = 'math') {
         prompt: 'Repeat the pattern',
         gridSize,
         pattern,
-        validate: (input) =>
+        validate: input =>
           Array.isArray(input) &&
           input.length === pattern.length &&
           input.every((v, i) => v === pattern[i]),
@@ -225,7 +239,10 @@ export function generateDismissChallenge(type = 'math') {
  * @param {number} userMaxBrightness - User's preferred max brightness (0–1)
  * @returns {number} Adjusted brightness value
  */
-export function computeScreenBrightness(targetBrightness, userMaxBrightness = 1.0) {
+export function computeScreenBrightness(
+  targetBrightness,
+  userMaxBrightness = 1.0,
+) {
   // Apply an ease-in curve for more natural brightness ramp
   const eased = targetBrightness * targetBrightness; // quadratic ease-in
   return eased * userMaxBrightness;

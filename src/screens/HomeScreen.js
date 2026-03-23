@@ -4,7 +4,7 @@
 // Shows next alarm, sleep projection, and quick actions.
 // ============================================================
 
-import React, { useMemo } from 'react';
+import React, {useMemo} from 'react';
 import {
   View,
   Text,
@@ -15,20 +15,25 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
-import { useClock, useCountdown } from '../hooks';
-import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
-import { formatTime, timeUntil, timeToNextDate, describeRepeat, formatDuration } from '../utils';
-import { suggestBedtimes } from '../services/SleepCycleEngine';
+import {useClock, useCountdown} from '../hooks';
+import {COLORS, SPACING, BORDER_RADIUS} from '../constants';
+import {
+  formatTime,
+  timeToNextDate,
+  describeRepeat,
+  formatDuration,
+} from '../utils';
+import {suggestBedtimes} from '../services/SleepCycleEngine';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({navigation}) {
   const now = useClock(60000); // Update every minute
-  const alarms = useAppStore((s) => s.alarms);
-  const toggleAlarm = useAppStore((s) => s.toggleAlarm);
-  const isTracking = useAppStore((s) => s.isTracking);
+  const alarms = useAppStore(s => s.alarms);
+  const toggleAlarm = useAppStore(s => s.toggleAlarm);
+  const isTracking = useAppStore(s => s.isTracking);
 
   // Find next active alarm
   const nextAlarm = useMemo(() => {
-    const active = alarms.filter((a) => a.isEnabled);
+    const active = alarms.filter(a => a.isEnabled);
     if (active.length === 0) return null;
 
     // Find the soonest alarm
@@ -37,11 +42,9 @@ export default function HomeScreen({ navigation }) {
       const closestNext = closest
         ? timeToNextDate(closest.time.hour, closest.time.minute)
         : null;
-      return !closestNext || next < closestNext
-        ? alarm
-        : closest;
+      return !closestNext || next < closestNext ? alarm : closest;
     }, null);
-  }, [alarms, now]);
+  }, [alarms]);
 
   const nextAlarmDate = nextAlarm
     ? timeToNextDate(nextAlarm.time.hour, nextAlarm.time.minute)
@@ -69,9 +72,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.nextAlarmCard}>
             <View style={styles.alarmTimeRow}>
               <Icon name="sunrise" size={24} color={COLORS.accent} />
-              <Text style={styles.alarmTime}>
-                {formatTime(nextAlarmDate)}
-              </Text>
+              <Text style={styles.alarmTime}>{formatTime(nextAlarmDate)}</Text>
               <View style={styles.smartBadge}>
                 <Icon name="zap" size={12} color={COLORS.nightDeep} />
                 <Text style={styles.smartBadgeText}>Smart</Text>
@@ -88,9 +89,8 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.sleepProjection}>
               <Icon name="moon" size={16} color={COLORS.primaryLight} />
               <Text style={styles.projectionText}>
-                If you sleep now: ~{formatDuration(
-                  (nextAlarmDate - now) / 60000
-                )} of sleep
+                If you sleep now: ~
+                {formatDuration((nextAlarmDate - now) / 60000)} of sleep
               </Text>
             </View>
 
@@ -98,9 +98,8 @@ export default function HomeScreen({ navigation }) {
             <TouchableOpacity
               style={styles.startButton}
               onPress={() =>
-                navigation.navigate('SleepTracking', { alarmId: nextAlarm.id })
-              }
-            >
+                navigation.navigate('SleepTracking', {alarmId: nextAlarm.id})
+              }>
               <Icon name="play" size={18} color={COLORS.nightDeep} />
               <Text style={styles.startButtonText}>
                 {isTracking ? 'Tracking Active...' : 'Start Sleep Tracking'}
@@ -131,15 +130,12 @@ export default function HomeScreen({ navigation }) {
                   styles.bedtimeRow,
                   suggestion.recommendation === 'recommended' &&
                     styles.bedtimeRecommended,
-                ]}
-              >
+                ]}>
                 <View>
                   <Text style={styles.bedtimeTime}>
                     {formatTime(suggestion.bedtime)}
                   </Text>
-                  <Text style={styles.bedtimeCycles}>
-                    {suggestion.label}
-                  </Text>
+                  <Text style={styles.bedtimeCycles}>{suggestion.label}</Text>
                 </View>
                 {suggestion.recommendation === 'recommended' && (
                   <View style={styles.recommendedBadge}>
@@ -159,24 +155,24 @@ export default function HomeScreen({ navigation }) {
               No alarms yet. Tap + to add one.
             </Text>
           ) : (
-            alarms.map((alarm) => (
+            alarms.map(alarm => (
               <TouchableOpacity
                 key={alarm.id}
                 style={styles.alarmRow}
                 onPress={() =>
-                  navigation.navigate('AlarmSetup', { alarmId: alarm.id })
-                }
-              >
+                  navigation.navigate('AlarmSetup', {alarmId: alarm.id})
+                }>
                 <View>
                   <Text
                     style={[
                       styles.alarmRowTime,
                       !alarm.isEnabled && styles.disabled,
-                    ]}
-                  >
+                    ]}>
                     {`${alarm.time.hour % 12 || 12}:${alarm.time.minute
                       .toString()
-                      .padStart(2, '0')} ${alarm.time.hour >= 12 ? 'PM' : 'AM'}`}
+                      .padStart(2, '0')} ${
+                      alarm.time.hour >= 12 ? 'PM' : 'AM'
+                    }`}
                   </Text>
                   <Text style={styles.alarmRowLabel}>
                     {alarm.label} · {describeRepeat(alarm.repeatDays)}
@@ -189,7 +185,9 @@ export default function HomeScreen({ navigation }) {
                     false: COLORS.nightLight,
                     true: COLORS.primaryDark,
                   }}
-                  thumbColor={alarm.isEnabled ? COLORS.primary : COLORS.textMuted}
+                  thumbColor={
+                    alarm.isEnabled ? COLORS.primary : COLORS.textMuted
+                  }
                 />
               </TouchableOpacity>
             ))
@@ -200,8 +198,7 @@ export default function HomeScreen({ navigation }) {
       {/* FAB — Add Alarm */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AlarmSetup', {})}
-      >
+        onPress={() => navigation.navigate('AlarmSetup', {})}>
         <Icon name="plus" size={28} color={COLORS.nightDeep} />
       </TouchableOpacity>
     </View>
@@ -410,7 +407,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: 8,
     shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.4,
     shadowRadius: 8,
   },

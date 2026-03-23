@@ -22,7 +22,10 @@ export function formatTime(date) {
 export function formatTime24(date) {
   if (!date) return '--:--';
   const d = date instanceof Date ? date : new Date(date);
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  return `${d.getHours().toString().padStart(2, '0')}:${d
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}`;
 }
 
 /**
@@ -42,8 +45,20 @@ export function formatDate(date) {
   if (!date) return '';
   const d = date instanceof Date ? date : new Date(date);
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
 }
 
@@ -105,8 +120,10 @@ export function describeRepeat(days) {
   const weekdays = [1, 2, 3, 4, 5];
   const weekends = [0, 6];
 
-  if (weekdays.every(d => days.includes(d)) && days.length === 5) return 'Weekdays';
-  if (weekends.every(d => days.includes(d)) && days.length === 2) return 'Weekends';
+  if (weekdays.every(d => days.includes(d)) && days.length === 5)
+    return 'Weekdays';
+  if (weekends.every(d => days.includes(d)) && days.length === 2)
+    return 'Weekends';
 
   return getDayNames(days.sort()).join(', ');
 }
@@ -122,7 +139,7 @@ export function calculateSleepQuality({
   consistencyDeviation = 0,
   sensorQuality = null,
 }) {
-  const { QUALITY_WEIGHTS } = require('../constants').ANALYTICS_CONFIG;
+  const {QUALITY_WEIGHTS} = require('../constants').ANALYTICS_CONFIG;
   let score = 0;
 
   // Duration score (0–100)
@@ -136,7 +153,7 @@ export function calculateSleepQuality({
   score += durationScore * QUALITY_WEIGHTS.duration;
 
   // Wake phase score
-  const phaseScores = { LIGHT_1: 100, LIGHT_2: 90, REM: 70, DEEP: 30 };
+  const phaseScores = {LIGHT_1: 100, LIGHT_2: 90, REM: 70, DEEP: 30};
   const wakeScore = phaseScores[wakePhase] || 50;
   score += wakeScore * QUALITY_WEIGHTS.wakePhase;
 
@@ -159,10 +176,10 @@ export function calculateSleepQuality({
  * Generate a color for sleep quality score.
  */
 export function qualityColor(score) {
-  if (score >= 80) return '#6BCB77';  // green
-  if (score >= 60) return '#F9E784';  // yellow
-  if (score >= 40) return '#F2A65A';  // orange
-  return '#E85D75';                   // red
+  if (score >= 80) return '#6BCB77'; // green
+  if (score >= 60) return '#F9E784'; // yellow
+  if (score >= 40) return '#F2A65A'; // orange
+  return '#E85D75'; // red
 }
 
 /**
