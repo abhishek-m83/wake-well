@@ -22,7 +22,7 @@ export const useAppStore = create((set, get) => ({
       alarms: [
         ...state.alarms,
         {
-          id: `alarm_${Date.now()}`,
+          id: alarm.id || `alarm_${Date.now()}`,
           time: alarm.time, // { hour, minute }
           label: alarm.label || 'Wake Up',
           repeatDays: alarm.repeatDays || [], // [0=Sun..6=Sat]

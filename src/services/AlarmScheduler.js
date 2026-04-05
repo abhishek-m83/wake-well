@@ -161,8 +161,12 @@ class AlarmScheduler {
   cancelAlarm(id) {
     try {
       const PushNotification = require('react-native-push-notification');
-      PushNotification.cancelLocalNotification(`${id}_prewake`);
-      PushNotification.cancelLocalNotification(`${id}_alarm`);
+      PushNotification.cancelLocalNotification(
+        this._toNumericId(`${id}_prewake`),
+      );
+      PushNotification.cancelLocalNotification(
+        this._toNumericId(`${id}_alarm`),
+      );
     } catch (e) {
       console.warn('Could not cancel notifications:', e);
     }
@@ -273,6 +277,16 @@ class AlarmScheduler {
 
   // ---- Private Methods ----
 
+  // react-native-push-notification requires a numeric string id for reliable
+  // scheduling and cancellation. We hash the string id to a stable integer.
+  _toNumericId(stringId) {
+    let hash = 0;
+    for (let i = 0; i < stringId.length; i++) {
+      hash = (Math.imul(31, hash) + stringId.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash);
+  }
+
   _scheduleNotification({
     id,
     title,
@@ -287,7 +301,7 @@ class AlarmScheduler {
       const PushNotification = require('react-native-push-notification');
 
       PushNotification.localNotificationSchedule({
-        id,
+        id: this._toNumericId(id),
         channelId,
         title,
         message,

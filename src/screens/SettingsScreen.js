@@ -2,7 +2,7 @@
 // WakeWell — Settings Screen
 // ============================================================
 
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,10 @@ import {COLORS, SPACING, BORDER_RADIUS, WAKE_CONFIG} from '../constants';
 export default function SettingsScreen() {
   const settings = useAppStore(s => s.settings);
   const updateSettings = useAppStore(s => s.updateSettings);
+
+  const [localFallAsleep, setLocalFallAsleep] = useState(null);
+  const [localSmartWindow, setLocalSmartWindow] = useState(null);
+  const [localBrightness, setLocalBrightness] = useState(null);
 
   const renderToggle = (icon, label, description, key) => (
     <View style={styles.settingRow}>
@@ -61,7 +65,7 @@ export default function SettingsScreen() {
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Time to Fall Asleep</Text>
             <Text style={styles.sliderValue}>
-              {settings.fallAsleepTimeMin} min
+              {localFallAsleep ?? settings.fallAsleepTimeMin} min
             </Text>
           </View>
           <Text style={styles.settingDesc}>
@@ -72,8 +76,12 @@ export default function SettingsScreen() {
             minimumValue={5}
             maximumValue={45}
             step={1}
-            value={settings.fallAsleepTimeMin}
-            onValueChange={val => updateSettings({fallAsleepTimeMin: val})}
+            value={localFallAsleep ?? settings.fallAsleepTimeMin}
+            onValueChange={val => setLocalFallAsleep(val)}
+            onSlidingComplete={val => {
+              setLocalFallAsleep(null);
+              updateSettings({fallAsleepTimeMin: val});
+            }}
             minimumTrackTintColor={COLORS.primary}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.primaryLight}
@@ -85,7 +93,7 @@ export default function SettingsScreen() {
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Smart Alarm Window</Text>
             <Text style={styles.sliderValue}>
-              {settings.defaultSmartWindow} min
+              {localSmartWindow ?? settings.defaultSmartWindow} min
             </Text>
           </View>
           <Text style={styles.settingDesc}>
@@ -96,8 +104,12 @@ export default function SettingsScreen() {
             minimumValue={10}
             maximumValue={45}
             step={5}
-            value={settings.defaultSmartWindow}
-            onValueChange={val => updateSettings({defaultSmartWindow: val})}
+            value={localSmartWindow ?? settings.defaultSmartWindow}
+            onValueChange={val => setLocalSmartWindow(val)}
+            onSlidingComplete={val => {
+              setLocalSmartWindow(null);
+              updateSettings({defaultSmartWindow: val});
+            }}
             minimumTrackTintColor={COLORS.primary}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.primaryLight}
@@ -112,7 +124,7 @@ export default function SettingsScreen() {
           <View style={styles.sliderHeader}>
             <Text style={styles.settingLabel}>Max Wake Brightness</Text>
             <Text style={styles.sliderValue}>
-              {Math.round(settings.maxBrightness * 100)}%
+              {Math.round((localBrightness ?? settings.maxBrightness) * 100)}%
             </Text>
           </View>
           <Text style={styles.settingDesc}>
@@ -123,8 +135,12 @@ export default function SettingsScreen() {
             minimumValue={0.2}
             maximumValue={1.0}
             step={0.05}
-            value={settings.maxBrightness}
-            onValueChange={val => updateSettings({maxBrightness: val})}
+            value={localBrightness ?? settings.maxBrightness}
+            onValueChange={val => setLocalBrightness(val)}
+            onSlidingComplete={val => {
+              setLocalBrightness(null);
+              updateSettings({maxBrightness: val});
+            }}
             minimumTrackTintColor={COLORS.accent}
             maximumTrackTintColor={COLORS.nightLight}
             thumbTintColor={COLORS.accentSoft}
