@@ -54,19 +54,22 @@ class SensorService {
       const {accelerometer} = require('react-native-sensors');
       // Try to get a single reading
       return new Promise(resolve => {
+        let timeout;
         const sub = accelerometer.subscribe(
           () => {
+            clearTimeout(timeout);
             sub.unsubscribe();
             this.sensorAvailable = true;
             resolve(true);
           },
           () => {
+            clearTimeout(timeout);
             this.sensorAvailable = false;
             resolve(false);
           },
         );
-        // Timeout after 2 seconds
-        setTimeout(() => {
+        // Timeout after 2 seconds if no reading arrives
+        timeout = setTimeout(() => {
           sub.unsubscribe();
           resolve(false);
         }, 2000);

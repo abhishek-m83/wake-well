@@ -36,8 +36,10 @@ export default function HomeScreen({navigation}) {
     const active = alarms.filter(a => a.isEnabled);
     if (active.length === 0) return null;
 
-    // Find the soonest alarm
+    // Find the soonest alarm (skip any with corrupted time data)
     return active.reduce((closest, alarm) => {
+      if (alarm.time?.hour == null || alarm.time?.minute == null)
+        return closest;
       const next = timeToNextDate(alarm.time.hour, alarm.time.minute);
       const closestNext = closest
         ? timeToNextDate(closest.time.hour, closest.time.minute)

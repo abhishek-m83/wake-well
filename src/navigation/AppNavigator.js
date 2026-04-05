@@ -5,8 +5,14 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
-import {NavigationContainer, DarkTheme} from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DarkTheme,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
+
+export const navigationRef = createNavigationContainerRef();
 
 import HomeScreen from '../screens/HomeScreen';
 import AlarmSetupScreen from '../screens/AlarmSetupScreen';
@@ -72,6 +78,7 @@ function MainTabs() {
 export default function AppNavigator() {
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
         ...DarkTheme,
         colors: {

@@ -4,7 +4,10 @@
 
 import React, {useEffect, Component} from 'react';
 import {StatusBar, LogBox, View, Text} from 'react-native';
-import AppNavigator from './src/navigation/AppNavigator';
+import AppNavigator, {navigationRef} from './src/navigation/AppNavigator';
+import AlarmScheduler from './src/services/AlarmScheduler';
+import {hydrateStore, enablePersistence, useAppStore} from './src/store';
+import {timeToNextDate} from './src/utils';
 
 class ErrorBoundary extends Component {
   state = {error: null};
@@ -43,8 +46,6 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import AlarmScheduler from './src/services/AlarmScheduler';
-import {hydrateStore, enablePersistence} from './src/store';
 
 // Suppress non-critical warnings in development
 LogBox.ignoreLogs([
@@ -71,8 +72,15 @@ export default function App() {
           // The SleepTrackingScreen handles the progressive wake start
         },
         onAlarmTrigger: alarmId => {
-          console.log('Alarm triggered:', alarmId);
-          // Navigate to WakeScreen — handled by notification deep link
+          if (!navigationRef.isReady()) return;
+          // Look up alarm time from store so WakeScreen stages are correct
+          const alarm = useAppStore
+            .getState()
+            .alarms.find(a => a.id === alarmId);
+          const alarmTime = alarm
+            ? timeToNextDate(alarm.time.hour, alarm.time.minute).toISOString()
+            : new Date().toISOString();
+          navigationRef.navigate('Wake', {alarmTime});
         },
       });
     }

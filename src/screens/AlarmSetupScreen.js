@@ -164,6 +164,7 @@ export default function AlarmSetupScreen({navigation, route}) {
             onChangeText={setLabel}
             placeholder="Alarm name"
             placeholderTextColor={COLORS.textMuted}
+            maxLength={40}
           />
         </View>
 
