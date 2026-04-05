@@ -5,7 +5,7 @@
 // brightness control, and dismiss challenges.
 // ============================================================
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -14,15 +14,21 @@ import {
   TextInput,
   Dimensions,
 } from 'react-native';
+import Sound from 'react-native-sound';
+import KeepAwake from 'react-native-keep-awake';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
 import {useClock, useProgressiveWake} from '../hooks';
+
 import {
   generateDismissChallenge,
   computeScreenBrightness,
 } from '../services/ProgressiveWakeManager';
 import {COLORS, SPACING, BORDER_RADIUS, ANALYTICS_CONFIG} from '../constants';
 import {formatTime} from '../utils';
+
+// Enable playback in silence mode (iOS)
+Sound.setCategory('Playback');
 
 const {width} = Dimensions.get('window');
 
@@ -46,6 +52,86 @@ export default function WakeScreen({navigation, route}) {
   const [showFreshnessRating, setShowFreshnessRating] = useState(false);
   const [breathingStep, setBreathingStep] = useState(0);
   const [breathingTimer, setBreathingTimer] = useState(0);
+
+  // Shake challenge state
+  const [shakeCount, setShakeCount] = useState(0);
+  const shakeLastAt = useRef(0);
+
+  // Pattern challenge state: 'showing' | 'input'
+  const [patternPhase, setPatternPhase] = useState('showing');
+  const [patternShowIdx, setPatternShowIdx] = useState(0);
+  const [patternUserInput, setPatternUserInput] = useState([]);
+  const [patternError, setPatternError] = useState(false);
+
+  // Keep screen awake for the entire wake sequence
+  useEffect(() => {
+    KeepAwake.activate();
+    return () => KeepAwake.deactivate();
+  }, []);
+
+  // Active Sound instances keyed by sound file name
+  const soundsRef = useRef({});
+  const patternErrorTimerRef = useRef(null);
+
+  const stopAllSounds = useCallback(() => {
+    Object.values(soundsRef.current).forEach(s => {
+      s.stop(() => s.release());
+    });
+    soundsRef.current = {};
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    stopAllSounds();
+    setDismissed(true);
+    setShowFreshnessRating(true);
+  }, [stopAllSounds]);
+
+  // Sync playing sounds with wakeInfo.activeSounds
+  useEffect(() => {
+    if (dismissed) return;
+
+    const desired = wakeInfo.activeSounds; // [{file, targetVolume, ...}]
+    const current = soundsRef.current;
+    const desiredFiles = new Set(desired.map(s => s.file));
+
+    // Stop sounds no longer needed
+    Object.keys(current).forEach(file => {
+      if (!desiredFiles.has(file)) {
+        current[file].stop(() => current[file].release());
+        delete current[file];
+      }
+    });
+
+    // Start or update each desired sound
+    desired.forEach(({file, targetVolume}) => {
+      if (current[file]) {
+        // Already playing — just update volume
+        current[file].setVolume(targetVolume);
+      } else {
+        // Load and play new sound
+        const s = new Sound(file, Sound.MAIN_BUNDLE, err => {
+          if (err) {
+            s.release(); // prevent memory leak on failed load
+            return;
+          }
+          s.setVolume(targetVolume);
+          s.setNumberOfLoops(-1); // loop indefinitely
+          s.play();
+          soundsRef.current[file] = s;
+        });
+      }
+    });
+  }, [wakeInfo.activeSounds, dismissed]);
+
+  // Clean up all sounds and pending timers on unmount
+  useEffect(() => {
+    return () => {
+      stopAllSounds();
+      if (patternErrorTimerRef.current) {
+        clearTimeout(patternErrorTimerRef.current);
+      }
+    };
+  }, [stopAllSounds]);
 
   // Background opacity based on wake brightness
   const bgOpacity = computeScreenBrightness(
@@ -79,7 +165,86 @@ export default function WakeScreen({navigation, route}) {
         handleDismiss();
       }
     }
-  }, [breathingTimer, breathingStep, challenge]);
+  }, [breathingTimer, breathingStep, challenge, handleDismiss]);
+
+  // Shake detection via accelerometer
+  useEffect(() => {
+    if (challenge?.type !== 'shake' || dismissed) return;
+
+    let subscription;
+    try {
+      const {
+        accelerometer,
+        setUpdateIntervalForType,
+        SensorTypes,
+      } = require('react-native-sensors');
+      setUpdateIntervalForType(SensorTypes.accelerometer, 100);
+      subscription = accelerometer.subscribe(({x, y, z}) => {
+        const magnitude = Math.sqrt(x * x + y * y + z * z);
+        const ts = Date.now();
+        // Threshold 18 m/s² (well above gravity ~9.8); debounce 350ms
+        if (magnitude > 18 && ts - shakeLastAt.current > 350) {
+          shakeLastAt.current = ts;
+          setShakeCount(c => {
+            const next = c + 1;
+            if (next >= challenge.targetCount) {
+              handleDismiss();
+            }
+            return next;
+          });
+        }
+      });
+    } catch (_) {}
+
+    return () => subscription?.unsubscribe();
+  }, [challenge, dismissed, handleDismiss]);
+
+  // Pattern: animate showing the pattern cells one by one
+  useEffect(() => {
+    if (challenge?.type !== 'pattern' || patternPhase !== 'showing') return;
+
+    if (patternShowIdx < challenge.pattern.length) {
+      const t = setTimeout(() => setPatternShowIdx(i => i + 1), 700);
+      return () => clearTimeout(t);
+    } else {
+      // Finished showing — give user a moment then switch to input
+      const t = setTimeout(() => setPatternPhase('input'), 500);
+      return () => clearTimeout(t);
+    }
+  }, [challenge, patternPhase, patternShowIdx]);
+
+  // Pattern: reset show sequence when a new challenge is generated
+  useEffect(() => {
+    if (challenge?.type === 'pattern') {
+      setPatternPhase('showing');
+      setPatternShowIdx(0);
+      setPatternUserInput([]);
+      setPatternError(false);
+    }
+  }, [challenge]);
+
+  const handlePatternTap = cellIndex => {
+    if (patternPhase !== 'input' || dismissed) return;
+    const next = [...patternUserInput, cellIndex];
+    const expectedSoFar = challenge.pattern.slice(0, next.length);
+
+    if (next[next.length - 1] !== expectedSoFar[next.length - 1]) {
+      // Wrong cell — flash error and restart
+      setPatternError(true);
+      patternErrorTimerRef.current = setTimeout(() => {
+        setPatternError(false);
+        setPatternPhase('showing');
+        setPatternShowIdx(0);
+        setPatternUserInput([]);
+      }, 800);
+      return;
+    }
+
+    setPatternUserInput(next);
+    if (next.length === challenge.pattern.length) {
+      handleDismiss();
+    }
+  };
 
   const startBreathing = () => {
     setBreathingStep(1);
@@ -97,11 +262,6 @@ export default function WakeScreen({navigation, route}) {
       setChallenge(generateDismissChallenge(challenge.type));
       setTimeout(() => setChallengeError(false), 1500);
     }
-  };
-
-  const handleDismiss = () => {
-    setDismissed(true);
-    setShowFreshnessRating(true);
   };
 
   const handleFreshnessRating = rating => {
@@ -272,11 +432,62 @@ export default function WakeScreen({navigation, route}) {
             )}
 
             {challenge.type === 'shake' && (
-              <Text style={styles.challengePrompt}>{challenge.prompt}</Text>
+              <View style={styles.shakeContainer}>
+                <Icon name="smartphone" size={48} color={COLORS.accent} />
+                <Text style={styles.shakeCount}>
+                  {shakeCount} / {challenge.targetCount}
+                </Text>
+                <Text style={styles.shakePrompt}>Shake your phone!</Text>
+                <View style={styles.shakeProgressTrack}>
+                  <View
+                    style={[
+                      styles.shakeProgressFill,
+                      {
+                        width: `${Math.min(
+                          100,
+                          (shakeCount / challenge.targetCount) * 100,
+                        )}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
             )}
 
             {challenge.type === 'pattern' && (
-              <Text style={styles.challengePrompt}>{challenge.prompt}</Text>
+              <View style={styles.patternContainer}>
+                <Text style={styles.patternLabel}>
+                  {patternPhase === 'showing'
+                    ? 'Watch the pattern…'
+                    : patternError
+                    ? 'Wrong! Watch again…'
+                    : 'Repeat the pattern'}
+                </Text>
+                <View style={styles.patternGrid}>
+                  {Array.from({
+                    length: challenge.gridSize * challenge.gridSize,
+                  }).map((_, i) => {
+                    const isHighlighted =
+                      patternPhase === 'showing' &&
+                      challenge.pattern[patternShowIdx - 1] === i;
+                    const isUserTapped =
+                      patternPhase === 'input' && patternUserInput.includes(i);
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        onPress={() => handlePatternTap(i)}
+                        activeOpacity={patternPhase === 'input' ? 0.6 : 1}
+                        style={[
+                          styles.patternCell,
+                          isHighlighted && styles.patternCellHighlight,
+                          isUserTapped && styles.patternCellTapped,
+                          patternError && styles.patternCellError,
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
             )}
           </View>
         )}
@@ -456,6 +667,69 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontWeight: '200',
     marginTop: SPACING.md,
+  },
+  shakeContainer: {
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  shakeCount: {
+    fontSize: 48,
+    color: COLORS.accent,
+    fontWeight: '200',
+  },
+  shakePrompt: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  shakeProgressTrack: {
+    width: '100%',
+    height: 6,
+    backgroundColor: COLORS.nightLight,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: SPACING.sm,
+  },
+  shakeProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+    borderRadius: 3,
+  },
+  patternContainer: {
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  patternLabel: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  patternGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: 180,
+    gap: SPACING.sm,
+    justifyContent: 'center',
+  },
+  patternCell: {
+    width: 52,
+    height: 52,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.nightLight,
+    borderWidth: 2,
+    borderColor: COLORS.cardBorder,
+  },
+  patternCellHighlight: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  patternCellTapped: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  patternCellError: {
+    backgroundColor: COLORS.danger,
+    borderColor: COLORS.danger,
   },
   freshnessContent: {
     flex: 1,

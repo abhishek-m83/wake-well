@@ -5,7 +5,7 @@
 // and countdown to alarm. Minimal UI to avoid bright display.
 // ============================================================
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
@@ -14,6 +14,7 @@ import {
   useCountdown,
   useSensorTracking,
   useSleepModel,
+  useAppStateListener,
 } from '../hooks';
 import {COLORS, SPACING, BORDER_RADIUS} from '../constants';
 import {formatTime, timeToNextDate, formatDuration} from '../utils';
@@ -28,6 +29,7 @@ export default function SleepTrackingScreen({navigation, route}) {
   useClock(10000); // Update every 10 sec (battery saving)
   const sensor = useSensorTracking();
   const [trackingStarted, setTrackingStarted] = useState(false);
+  const smartAlarmFired = useRef(false);
 
   // Alarm date
   const alarmDate = alarm
@@ -65,6 +67,59 @@ export default function SleepTrackingScreen({navigation, route}) {
     startSleepSession,
     trackingStarted,
   ]);
+
+  // Resume sensor tracking if app returns to foreground mid-sleep
+  const handleForeground = useCallback(() => {
+    if (
+      trackingStarted &&
+      settings.useSensors &&
+      sensor.isAvailable &&
+      !sensor.isActive
+    ) {
+      sensor.start();
+    }
+  }, [trackingStarted, settings.useSensors, sensor]);
+
+  useAppStateListener(handleForeground, null);
+
+  // Smart alarm: watch each incoming sensor window and fire early if light sleep detected
+  useEffect(() => {
+    if (
+      !alarm?.smartAlarmEnabled ||
+      !alarmDate ||
+      !sensor.isActive ||
+      smartAlarmFired.current
+    ) {
+      return;
+    }
+
+    const latestWindows = sensor.movementData;
+    if (latestWindows.length < 2) return;
+
+    const now = new Date();
+    const msUntilAlarm = alarmDate - now;
+    const smartWindowMs = (alarm.smartWindowMin || 30) * 60 * 1000;
+
+    // Only look for a wake window inside the smart window
+    if (msUntilAlarm > smartWindowMs || msUntilAlarm < 0) return;
+
+    // Check that the last 2 consecutive windows are both non-restless
+    const recent = latestWindows.slice(-2);
+    const allLight = recent.every(
+      w => w.classification === 'still' || w.classification === 'light',
+    );
+
+    if (allLight) {
+      smartAlarmFired.current = true;
+      // Cancel the pending push notification — we're handling it in-app
+      AlarmScheduler.cancelAlarm(alarmId);
+      AlarmScheduler.stopSleepTrackingService();
+      sensor.stop();
+      // Navigate to WakeScreen with the original alarm time so the
+      // progressive wake sequence picks up at the right stage
+      navigation.replace('Wake', {alarmTime: alarmDate.toISOString()});
+    }
+  }, [sensor.movementData, alarm, alarmDate, alarmId, sensor, navigation]);
 
   const handleCancel = () => {
     sensor.stop();
@@ -145,14 +200,31 @@ export default function SleepTrackingScreen({navigation, route}) {
             </View>
           )}
 
-          {alarm.smartAlarmEnabled && (
-            <View style={styles.infoRow}>
-              <Icon name="zap" size={16} color={COLORS.accent} />
-              <Text style={styles.infoText}>
-                Smart alarm will find your lightest sleep
-              </Text>
-            </View>
-          )}
+          {alarm.smartAlarmEnabled &&
+            (() => {
+              const now = new Date();
+              const msUntilAlarm = alarmDate ? alarmDate - now : 0;
+              const smartWindowMs = (alarm.smartWindowMin || 30) * 60 * 1000;
+              const inWindow =
+                msUntilAlarm > 0 && msUntilAlarm <= smartWindowMs;
+              const minsUntilWindow = Math.ceil(
+                (msUntilAlarm - smartWindowMs) / 60000,
+              );
+              return (
+                <View style={styles.infoRow}>
+                  <Icon
+                    name="zap"
+                    size={16}
+                    color={inWindow ? COLORS.success : COLORS.accent}
+                  />
+                  <Text style={styles.infoText}>
+                    {inWindow
+                      ? 'Smart alarm active — watching for light sleep'
+                      : `Smart alarm window opens in ${minsUntilWindow}m`}
+                  </Text>
+                </View>
+              );
+            })()}
         </View>
 
         {/* Sensor movement indicator */}
