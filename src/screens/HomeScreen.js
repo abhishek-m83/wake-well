@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
+import AlarmScheduler from '../services/AlarmScheduler';
 import {useClock, useCountdown} from '../hooks';
 import {COLORS, SPACING, BORDER_RADIUS} from '../constants';
 import {
@@ -182,7 +183,25 @@ export default function HomeScreen({navigation}) {
                 </View>
                 <Switch
                   value={alarm.isEnabled}
-                  onValueChange={() => toggleAlarm(alarm.id)}
+                  onValueChange={() => {
+                    toggleAlarm(alarm.id);
+                    if (alarm.isEnabled) {
+                      // Was enabled, now turning off — cancel OS notification
+                      AlarmScheduler.cancelAlarm(alarm.id);
+                    } else {
+                      // Was disabled, now turning on — schedule OS notification
+                      AlarmScheduler.scheduleAlarm({
+                        id: alarm.id,
+                        alarmTime: timeToNextDate(
+                          alarm.time.hour,
+                          alarm.time.minute,
+                        ),
+                        smartAlarmEnabled: alarm.smartAlarmEnabled,
+                        label: alarm.label,
+                        repeatDays: alarm.repeatDays,
+                      });
+                    }
+                  }}
                   trackColor={{
                     false: COLORS.nightLight,
                     true: COLORS.primaryDark,

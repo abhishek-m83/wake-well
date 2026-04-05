@@ -5,7 +5,7 @@
 // sound preferences, and smart alarm settings.
 // ============================================================
 
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import useAppStore from '../store';
+import AlarmScheduler from '../services/AlarmScheduler';
+import {timeToNextDate} from '../utils';
 import {
   COLORS,
   SPACING,
@@ -26,6 +28,141 @@ import {
 } from '../constants';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const HOURS = Array.from({length: 12}, (_, i) => i + 1); // 1–12
+const MINUTES = Array.from({length: 60}, (_, i) => i); // 0–59
+
+const DRUM_ITEM_HEIGHT = 64;
+const DRUM_VISIBLE = 3; // items visible; middle = selected
+const DRUM_HEIGHT = DRUM_ITEM_HEIGHT * DRUM_VISIBLE;
+
+function DrumPicker({values, selectedValue, onValueChange, format}) {
+  const scrollRef = useRef(null);
+  const selectedIndex = values.indexOf(selectedValue);
+  const isScrolling = useRef(false);
+
+  // Scroll to the selected item on mount / external value change
+  useEffect(() => {
+    if (scrollRef.current && selectedIndex >= 0 && !isScrolling.current) {
+      scrollRef.current.scrollTo({
+        y: selectedIndex * DRUM_ITEM_HEIGHT,
+        animated: false,
+      });
+    }
+  }, [selectedIndex]);
+
+  const commit = useCallback(
+    offsetY => {
+      const index = Math.round(offsetY / DRUM_ITEM_HEIGHT);
+      const clamped = Math.max(0, Math.min(index, values.length - 1));
+      onValueChange(values[clamped]);
+    },
+    [values, onValueChange],
+  );
+
+  return (
+    <View style={drumStyles.wrapper}>
+      {/* Top fade */}
+      <View style={drumStyles.fadeTop} pointerEvents="none" />
+      {/* Selection highlight */}
+      <View style={drumStyles.selectionBar} pointerEvents="none" />
+      {/* Bottom fade */}
+      <View style={drumStyles.fadeBottom} pointerEvents="none" />
+
+      <ScrollView
+        ref={scrollRef}
+        style={drumStyles.scroll}
+        contentContainerStyle={{paddingVertical: DRUM_ITEM_HEIGHT}}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={DRUM_ITEM_HEIGHT}
+        decelerationRate="fast"
+        onScrollBeginDrag={() => {
+          isScrolling.current = true;
+        }}
+        onMomentumScrollEnd={e => {
+          isScrolling.current = false;
+          commit(e.nativeEvent.contentOffset.y);
+        }}
+        onScrollEndDrag={e => {
+          isScrolling.current = false;
+          commit(e.nativeEvent.contentOffset.y);
+        }}>
+        {values.map((val, i) => {
+          const isSelected = val === selectedValue;
+          return (
+            <View key={i} style={drumStyles.item}>
+              <Text
+                style={[
+                  drumStyles.itemText,
+                  isSelected && drumStyles.itemTextSelected,
+                ]}>
+                {format ? format(val) : val}
+              </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const drumStyles = StyleSheet.create({
+  wrapper: {
+    height: DRUM_HEIGHT,
+    width: 80,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  scroll: {
+    flex: 1,
+  },
+  item: {
+    height: DRUM_ITEM_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemText: {
+    fontSize: 32,
+    color: COLORS.textMuted,
+    fontWeight: '200',
+    fontVariant: ['tabular-nums'],
+  },
+  itemTextSelected: {
+    fontSize: 48,
+    color: COLORS.textPrimary,
+    fontWeight: '300',
+  },
+  selectionBar: {
+    position: 'absolute',
+    top: DRUM_ITEM_HEIGHT,
+    left: 4,
+    right: 4,
+    height: DRUM_ITEM_HEIGHT,
+    backgroundColor: 'rgba(123, 111, 191, 0.12)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 111, 191, 0.3)',
+    zIndex: 1,
+  },
+  fadeTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: DRUM_ITEM_HEIGHT,
+    backgroundColor: 'rgba(11, 14, 26, 0.7)',
+    zIndex: 2,
+  },
+  fadeBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: DRUM_ITEM_HEIGHT,
+    backgroundColor: 'rgba(11, 14, 26, 0.7)',
+    zIndex: 2,
+  },
+});
 
 export default function AlarmSetupScreen({navigation, route}) {
   const {alarmId} = route.params || {};
@@ -76,25 +213,45 @@ export default function AlarmSetupScreen({navigation, route}) {
 
     if (existingAlarm) {
       updateAlarm(alarmId, alarmData);
+      // Cancel old OS notification and reschedule with updated time
+      AlarmScheduler.cancelAlarm(alarmId);
+      AlarmScheduler.scheduleAlarm({
+        id: alarmId,
+        alarmTime: timeToNextDate(hour, minute),
+        smartAlarmEnabled: smartEnabled,
+        label,
+        repeatDays,
+      });
     } else {
-      addAlarm(alarmData);
+      const newId = `alarm_${Date.now()}`;
+      addAlarm({...alarmData, id: newId});
+      AlarmScheduler.scheduleAlarm({
+        id: newId,
+        alarmTime: timeToNextDate(hour, minute),
+        smartAlarmEnabled: smartEnabled,
+        label,
+        repeatDays,
+      });
     }
     navigation.goBack();
   };
 
   const handleDelete = () => {
     if (existingAlarm) {
+      AlarmScheduler.cancelAlarm(alarmId);
       removeAlarm(alarmId);
     }
     navigation.goBack();
   };
 
-  // Simple scroll-based time picker
-  const adjustHour = delta => setHour(h => (h + delta + 24) % 24);
-  const adjustMinute = delta => setMinute(m => (m + delta + 60) % 60);
-
   const displayHour = hour % 12 || 12;
   const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  const handleHourChange = useCallback(
+    h => setHour(hour >= 12 ? (h % 12) + 12 : h % 12),
+    [hour],
+  );
+  const handleAmPmToggle = () => setHour(h => (h + 12) % 24);
 
   return (
     <View style={styles.container}>
@@ -114,44 +271,29 @@ export default function AlarmSetupScreen({navigation, route}) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Time Picker */}
         <View style={styles.timePicker}>
-          <View style={styles.timeColumn}>
-            <TouchableOpacity
-              onPress={() => adjustHour(1)}
-              style={styles.timeArrow}>
-              <Icon name="chevron-up" size={28} color={COLORS.textMuted} />
-            </TouchableOpacity>
-            <Text style={styles.timeDigit}>
-              {displayHour.toString().padStart(2, '0')}
-            </Text>
-            <TouchableOpacity
-              onPress={() => adjustHour(-1)}
-              style={styles.timeArrow}>
-              <Icon name="chevron-down" size={28} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </View>
-
+          <DrumPicker
+            values={HOURS}
+            selectedValue={displayHour}
+            onValueChange={handleHourChange}
+            format={v => v.toString().padStart(2, '0')}
+          />
           <Text style={styles.timeColon}>:</Text>
-
-          <View style={styles.timeColumn}>
-            <TouchableOpacity
-              onPress={() => adjustMinute(5)}
-              style={styles.timeArrow}>
-              <Icon name="chevron-up" size={28} color={COLORS.textMuted} />
-            </TouchableOpacity>
-            <Text style={styles.timeDigit}>
-              {minute.toString().padStart(2, '0')}
-            </Text>
-            <TouchableOpacity
-              onPress={() => adjustMinute(-5)}
-              style={styles.timeArrow}>
-              <Icon name="chevron-down" size={28} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </View>
-
+          <DrumPicker
+            values={MINUTES}
+            selectedValue={minute}
+            onValueChange={setMinute}
+            format={v => v.toString().padStart(2, '0')}
+          />
           <TouchableOpacity
             style={styles.ampmToggle}
-            onPress={() => setHour(h => (h + 12) % 24)}>
-            <Text style={styles.ampmText}>{ampm}</Text>
+            onPress={handleAmPmToggle}>
+            <Text
+              style={[
+                styles.ampmText,
+                {color: ampm === 'AM' ? COLORS.primaryLight : COLORS.accent},
+              ]}>
+              {ampm}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -344,27 +486,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  timeColumn: {
-    alignItems: 'center',
-  },
-  timeArrow: {
-    padding: SPACING.sm,
-  },
-  timeDigit: {
-    fontSize: 64,
-    color: COLORS.textPrimary,
-    fontWeight: '300',
-    fontVariant: ['tabular-nums'],
-    width: 90,
-    textAlign: 'center',
+    gap: SPACING.xs,
   },
   timeColon: {
-    fontSize: 56,
+    fontSize: 48,
     color: COLORS.textMuted,
     fontWeight: '200',
     marginBottom: 4,
+    paddingHorizontal: 2,
   },
   ampmToggle: {
     backgroundColor: COLORS.cardBg,
@@ -372,11 +501,15 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     marginLeft: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minWidth: 56,
+    alignItems: 'center',
   },
   ampmText: {
     fontSize: 18,
-    color: COLORS.primaryLight,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   field: {
     marginBottom: SPACING.xl,
